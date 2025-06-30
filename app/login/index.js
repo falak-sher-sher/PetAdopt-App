@@ -1,44 +1,56 @@
-import { useAuth } from '@clerk/clerk-expo';
+import { useOAuth } from '@clerk/clerk-expo';
 import * as AuthSession from 'expo-auth-session';
+import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect } from 'react';
-import { Image, Pressable, Text, View, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Image, Text, TouchableOpacity, View, Platform } from 'react-native';
 
-WebBrowser.maybeCompleteAuthSession();
-
+// 🔧 Warm up the browser only on native (not web)
 export const useWarmUpBrowser = () => {
   useEffect(() => {
-    void WebBrowser.warmUpAsync();
-    return () => void WebBrowser.coolDownAsync();
+    if (Platform.OS !== 'web') {
+      void WebBrowser.warmUpAsync();
+      return () => {
+        void WebBrowser.coolDownAsync();
+      };
+    }
   }, []);
 };
 
+// 🚀 Allow the browser session to resume on redirect
+WebBrowser.maybeCompleteAuthSession();
+
 export default function LoginScreen() {
   useWarmUpBrowser();
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
   const router = useRouter();
-  // const { startOAuthFlow } = useAuth({ strategy: 'oauth_google' });
 
-  const onPress = useCallback(() => {
-    // If you want to go to /home without authentication:
-    router.push('/home');
-    // If you want to use Google OAuth, uncomment below:
-    /*
+  const onPress = useCallback(async () => {
     try {
-      const redirectUrl = AuthSession.makeRedirectUri({ path: '/home' });
-      console.log('OAuth redirectUrl:', redirectUrl);
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: 'petadoptapp', // 🛠 Must match your app.json scheme exactly
+        path: 'home',
+      });
+
+      console.log('Redirect URI:', redirectUrl); // ✅ Debug log
+
       const { createdSessionId, setActive } = await startOAuthFlow({
         redirectUrl,
       });
+
       if (createdSessionId) {
         await setActive({ session: createdSessionId });
+        router.replace('/home'); // 📦 Navigate after sign-in
       }
     } catch (err) {
-      console.error('OAuth Error:', err, JSON.stringify(err, null, 2));
-      Alert.alert('Authentication Error', err?.message || 'Unknown error');
+      console.error('Raw error:', err);
+      try {
+        console.error('Stringified error:', JSON.stringify(err, null, 2));
+      } catch (e) {
+        console.error('Error could not be stringified:', e);
+      }
     }
-    */
-  }, [router]);
+  }, [router, startOAuthFlow]);
 
   return (
     <View style={{ backgroundColor: 'white', height: '100%' }}>
@@ -46,7 +58,8 @@ export default function LoginScreen() {
         source={require('../../assets/images/login.png')}
         style={{ width: '100%', height: 500 }}
       />
-      <View style={{ padding: 20, display: 'flex', alignItems: 'center' }}>
+
+      <View style={{ padding: 20, alignItems: 'center' }}>
         <Text
           style={{
             fontFamily: 'outfit-bold',
@@ -66,28 +79,18 @@ export default function LoginScreen() {
             marginTop: 10,
           }}
         >
-          Let’s adopt a pet you like and make them happy again
+          Let’s adopt a pet you like and make them happy again.
         </Text>
-        
       </View>
-      <View
-        
-       style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: 0.5,
-        }}
-        >
-        <Pressable
+
+      <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <TouchableOpacity
           onPress={onPress}
           style={{
             backgroundColor: '#FEBE00',
             padding: 12,
             borderRadius: 8,
             marginTop: 30,
-            justifyContent: 'center',
-            display: 'flex',
             width: '80%',
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
@@ -107,8 +110,8 @@ export default function LoginScreen() {
           >
             Get started
           </Text>
-        </Pressable>
-        </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

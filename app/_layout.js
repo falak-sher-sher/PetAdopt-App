@@ -1,10 +1,40 @@
 import { ClerkProvider } from '@clerk/clerk-expo';
-import { tokenCache } from '@clerk/clerk-expo/token-cache';
+// ❌ Removed: import { tokenCache } from '@clerk/clerk-expo/token-cache';
 import { Slot } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { View, ActivityIndicator } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
-const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+
+// ✅ Define tokenCache only once
+const tokenCache = {
+  async getToken(key) {
+    try {
+      const item = await SecureStore.getItemAsync(key);
+      if (item) {
+        console.log(`${key} was used\n`);
+      } else {
+        console.log('No values stored under key: ' + key);
+      }
+      return item;
+    } catch (error) {
+      console.log('SecureStore get item error:', error);
+      await SecureStore.deleteItemAsync(key);
+      return null;
+    }
+  },
+
+  async saveToken(key, value) {
+    try {
+      await SecureStore.setItemAsync(key, value);
+      console.log(`${key} has been saved successfully.`);
+    } catch (error) {
+      console.log('SecureStore save item error:', error);
+      return null;
+    }
+  },
+};
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -20,9 +50,9 @@ export default function RootLayout() {
       </View>
     );
   }
-
+const publishableKey=process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
   return (
-    <ClerkProvider tokenCache={tokenCache} publishableKey={clerkPublishableKey}>
+    <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
       <Slot />
     </ClerkProvider>
   );
