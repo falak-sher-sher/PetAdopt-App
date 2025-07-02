@@ -1,5 +1,6 @@
-import { useOAuth } from '@clerk/clerk-expo';
+import { useOAuth, useUser   } from '@clerk/clerk-expo';
 import * as AuthSession from 'expo-auth-session';
+import { useURL } from 'expo-linking';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect } from 'react';
@@ -25,22 +26,22 @@ export default function LoginScreen() {
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
   const router = useRouter();
 
+  const { isLoaded, isSignedIn } = useUser();
   const onPress = useCallback(async () => {
+    if (!isLoaded) return;
+    if (isSignedIn) {
+      router.replace('/home');
+      return;
+    }
     try {
       const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: 'petadoptapp', // 🛠 Must match your app.json scheme exactly
+        scheme: 'petadoptapp',
         path: 'home',
       });
-
-      console.log('Redirect URI:', redirectUrl); // ✅ Debug log
-
-      const { createdSessionId, setActive } = await startOAuthFlow({
-        redirectUrl,
-      });
-
+      const { createdSessionId, setActive } = await startOAuthFlow({ redirectUrl });
       if (createdSessionId) {
         await setActive({ session: createdSessionId });
-        router.replace('/home'); // 📦 Navigate after sign-in
+        router.replace('/home');
       }
     } catch (err) {
       console.error('Raw error:', err);
@@ -50,7 +51,7 @@ export default function LoginScreen() {
         console.error('Error could not be stringified:', e);
       }
     }
-  }, [router, startOAuthFlow]);
+  }, [router, startOAuthFlow, isLoaded, isSignedIn]);
 
   return (
     <View style={{ backgroundColor: 'white', height: '100%' }}>

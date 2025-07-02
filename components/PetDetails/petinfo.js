@@ -1,6 +1,7 @@
 import { Image, Text, TouchableOpacity, View } from 'react-native'
-import AntDesign from '@expo/vector-icons/AntDesign';
 import { useState } from 'react';
+import MarkFav from './MarkFav';
+
 export default function PetInfo({PetList}) {
     const [like,setLike]=useState(false)
   return (
@@ -41,10 +42,9 @@ export default function PetInfo({PetList}) {
             }}
             >{PetList.address}</Text>
         </View>
-        <TouchableOpacity onPress={()=> setLike(!like)}>
-      <AntDesign name={like? 'heart': 'hearto'} size={30} color={like? 'red':'black'} />
-      </TouchableOpacity>
+       <MarkFav PetList={PetList}/>
       </View>
+            
     </View>
   )
 }

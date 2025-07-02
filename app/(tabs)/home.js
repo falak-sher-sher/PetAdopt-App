@@ -4,8 +4,10 @@ import Header from '../../components/Home/Header'
 import Slider from '../../components/Home/Slider'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import PetListByCategory from '../../components/Home/PetListByCategory'
+import { useRouter } from 'expo-router'
 
 export default function home() {
+  const router = useRouter()
   return (
     <View style={{
       padding: 20,
@@ -19,7 +21,10 @@ export default function home() {
       {/* /* List of pets   Categaries  */}
 
       <PetListByCategory/>
-      <TouchableOpacity>
+      
+      <TouchableOpacity
+      onPress={() => router.push('/add-new-pet')}
+      >
        <View
        style={{
         flexDirection: 'row',
@@ -51,6 +56,7 @@ export default function home() {
         
        </View>
        </TouchableOpacity>
+       
       {/* Add new pet options  */}
     
     </View>
