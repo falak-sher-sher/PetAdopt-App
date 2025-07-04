@@ -1,97 +1,101 @@
-import { useLocalSearchParams, useNavigation } from 'expo-router';
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { db } from '../../config/firebaseConfig';
-import { doc, getDoc, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  Keyboard,
+  TouchableWithoutFeedback,
+} from 'react-native';
 
 export default function ChatScreen() {
-  const params = useLocalSearchParams();
-  const navigation = useNavigation();
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([
+    { id: '1', text: 'Hello! How can I help you today?', sender: 'admin' },
+    { id: '2', text: 'I have a question about your app.', sender: 'user' },
+  ]);
   const [input, setInput] = useState('');
+  const flatListRef = useRef(null);
 
-  // Listen for messages in Firestore
-  useEffect(() => {
-    if (!params.id) return;
-    const messagesRef = collection(db, 'Chats', params.id, 'messages');
-    const q = query(messagesRef, orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setMessages(msgs);
-    });
-    return unsubscribe;
-  }, [params.id]);
-
-  // Set chat header (optional, based on your logic)
-  useEffect(() => {
-    const getUserDetails = async () => {
-      const docRef = doc(db, 'Chats', params.id);
-      const docSnap = await getDoc(docRef);
-      const result = docSnap.data();
-      // You may need to adjust this logic based on your user structure
-      // navigation.setOptions({ headerTitle: ... });
-    };
-    getUserDetails();
-  }, [params.id, navigation]);
-
-  // Send message to Firestore
-  const sendMessage = useCallback(async () => {
+  const sendMessage = () => {
     if (!input.trim()) return;
-    const messagesRef = collection(db, 'Chats', params.id, 'messages');
-    await addDoc(messagesRef, {
+
+    const newMessage = {
+      id: Date.now().toString(),
       text: input.trim(),
-      sender: 'user', // Replace with actual user info if available
-      createdAt: serverTimestamp(),
-    });
+      sender: 'user',
+    };
+
+    setMessages((prev) => [newMessage, ...prev]);
     setInput('');
-  }, [input, params.id]);
+
+    // Simulate admin reply
+    setTimeout(() => {
+      const reply = {
+        id: (Date.now() + 1).toString(),
+        text: 'Thanks for your message! We’ll get back to you shortly.',
+        sender: 'admin',
+      };
+      setMessages((prev) => [reply, ...prev]);
+    }, 1000);
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={80}
-    >
-      <FlatList
-        data={messages}
-        inverted
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <View style={[
-            styles.messageContainer,
-            item.sender === 'user' ? styles.userMessage : styles.adminMessage,
-          ]}>
-            <Text style={styles.messageText}>{item.text}</Text>
-          </View>
-        )}
-        contentContainerStyle={{ padding: 10 }}
-      />
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        enabled
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.container}>
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              inverted
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View
+                  style={[
+                    styles.messageContainer,
+                    item.sender === 'user'
+                      ? styles.userMessage
+                      : styles.adminMessage,
+                  ]}
+                >
+                  <Text style={styles.messageText}>{item.text}</Text>
+                </View>
+              )}
+              contentContainerStyle={{ padding: 10 }}
+            />
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          value={input}
-          onChangeText={setInput}
-          placeholder="Type your message..."
-          placeholderTextColor="#999"
-          style={styles.input}
-        />
-        <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
-          <Text style={{ color: '#fff', fontWeight: 'bold' }}>Send</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={input}
+                onChangeText={setInput}
+                placeholder="Type your message..."
+                placeholderTextColor="#999"
+                style={styles.input}
+              />
+              <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Send</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  // ... your styles unchanged ...
   container: {
     flex: 1,
-    backgroundColor: 'white',
-    marginBottom: 30,
   },
   messageContainer: {
     maxWidth: '75%',
